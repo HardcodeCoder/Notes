@@ -6,11 +6,18 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.annotation.web.configurers.FormLoginConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class SecurityConfiguration {
+
+    private final String[] openEndpoints = {
+        "/auth/signup",
+        "/auth/token",
+        "/db/h2/**"
+    };
 
     @Bean
     @NonNull
@@ -20,8 +27,9 @@ public class SecurityConfiguration {
             .sessionManagement(it -> it.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .formLogin(FormLoginConfigurer::disable)
             .authorizeHttpRequests(it -> it
-                .requestMatchers("/auth/signup", "/auth/token").permitAll()
+                .requestMatchers(openEndpoints).permitAll()
                 .anyRequest().authenticated())
+            .headers(it -> it.frameOptions(FrameOptionsConfig::sameOrigin))
             .build();
     }
 }
