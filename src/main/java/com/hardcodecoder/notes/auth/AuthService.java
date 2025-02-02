@@ -1,9 +1,9 @@
 package com.hardcodecoder.notes.auth;
 
 import com.hardcodecoder.notes.account.AccountService;
+import com.hardcodecoder.notes.auth.model.AuthResponse;
 import com.hardcodecoder.notes.auth.model.SignupRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import com.hardcodecoder.notes.core.DataValidator;
 import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,30 +13,34 @@ public class AuthService {
 
     private final AccountService accountService;
     private final PasswordEncoder passwordEncoder;
+    private final DataValidator<String> emailValidator;
+    private final DataValidator<String> passwordValidator;
 
     public AuthService(
         @NonNull AccountService accountService,
-        @NonNull PasswordEncoder passwordEncoder
+        @NonNull PasswordEncoder passwordEncoder,
+        @NonNull DataValidator<String> emailValidator,
+        @NonNull DataValidator<String> passwordValidator
     ) {
         this.accountService = accountService;
         this.passwordEncoder = passwordEncoder;
+        this.emailValidator = emailValidator;
+        this.passwordValidator = passwordValidator;
     }
 
     @NonNull
-    public ResponseEntity<?> processSignUpRequest(@NonNull SignupRequest request) {
-        if (request.email() == null || request.email().isBlank()) {
-            return ResponseEntity.badRequest().body("Invalid Email");
+    public AuthResponse processSignUpRequest(@NonNull SignupRequest request) {
+        var signupSuccess = false;
+        if (null != request.email() && null != request.password()) {
+            if (emailValidator.validate(request.email()) && passwordValidator.validate(request.password())) {
+                signupSuccess = accountService.create(
+                    request.name(),
+                    request.email(),
+                    passwordEncoder.encode(request.password())
+                );
+            }
         }
-        if (null == request.password() || request.password().isBlank()) {
-            return ResponseEntity.badRequest().body("Invalid password");
-        }
-        var result = accountService.create(
-            request.name(),
-            request.email(),
-            passwordEncoder.encode(request.password())
-        );
-        return result ?
-               ResponseEntity.status(HttpStatus.CREATED).body("Success") :
-               ResponseEntity.internalServerError().build();
+
+        return new AuthResponse(signupSuccess ? "Request processed" : "Invalid Request", signupSuccess);
     }
 }

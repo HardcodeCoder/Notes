@@ -1,5 +1,8 @@
 package com.hardcodecoder.notes;
 
+import com.hardcodecoder.notes.auth.validator.EmailValidator;
+import com.hardcodecoder.notes.auth.validator.PasswordValidator;
+import com.hardcodecoder.notes.core.DataValidator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
@@ -22,7 +25,6 @@ public class SecurityConfiguration {
     };
 
     @Bean
-    @NonNull
     public SecurityFilterChain configureSecurity(@NonNull HttpSecurity security) throws Exception {
         return security
             .csrf(CsrfConfigurer::disable)
@@ -36,8 +38,17 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    @NonNull
     public PasswordEncoder bcryptPasswordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public DataValidator<String> emailValidator() {
+        return new EmailValidator();
+    }
+
+    @Bean
+    public DataValidator<String> passwordValidator() {
+        return new PasswordValidator();
     }
 }

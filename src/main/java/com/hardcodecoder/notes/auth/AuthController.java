@@ -1,6 +1,8 @@
 package com.hardcodecoder.notes.auth;
 
+import com.hardcodecoder.notes.auth.model.AuthResponse;
 import com.hardcodecoder.notes.auth.model.SignupRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
@@ -16,11 +18,17 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> register(@RequestBody SignupRequest request) {
+    public ResponseEntity<AuthResponse> register(@RequestBody SignupRequest request) {
         try {
-            return service.processSignUpRequest(request);
-        } catch (Exception _) {}
-        return ResponseEntity.internalServerError().body("Something went wrong");
+            var response = service.processSignUpRequest(request);
+            return ResponseEntity
+                .status(response.success() ? HttpStatus.OK : HttpStatus.BAD_REQUEST)
+                .body(response);
+        } catch (Exception _) {
+            return ResponseEntity
+                .internalServerError()
+                .body(new AuthResponse("Failed to process request", false));
+        }
     }
 
     @GetMapping("/token")
