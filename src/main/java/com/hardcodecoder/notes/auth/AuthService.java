@@ -5,13 +5,21 @@ import com.hardcodecoder.notes.auth.model.SignupRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
+@Service
 public class AuthService {
 
     private final AccountService accountService;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthService(@NonNull AccountService accountService) {
+    public AuthService(
+        @NonNull AccountService accountService,
+        @NonNull PasswordEncoder passwordEncoder
+    ) {
         this.accountService = accountService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @NonNull
@@ -25,7 +33,7 @@ public class AuthService {
         var result = accountService.create(
             request.name(),
             request.email(),
-            request.password()
+            passwordEncoder.encode(request.password())
         );
         return result ?
                ResponseEntity.status(HttpStatus.CREATED).body("Success") :

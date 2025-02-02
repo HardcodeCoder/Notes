@@ -1,8 +1,5 @@
 package com.hardcodecoder.notes;
 
-import com.hardcodecoder.notes.account.AccountRepository;
-import com.hardcodecoder.notes.account.AccountService;
-import com.hardcodecoder.notes.auth.AuthService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
@@ -42,20 +39,5 @@ public class SecurityConfiguration {
     @NonNull
     public PasswordEncoder bcryptPasswordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    @NonNull
-    public AccountService accountService(
-        @NonNull AccountRepository repository,
-        @NonNull PasswordEncoder passwordEncoder
-    ) {
-        return new AccountService(repository, passwordEncoder);
-    }
-
-    @Bean
-    @NonNull
-    public AuthService authService(@NonNull AccountService accountService) {
-        return new AuthService(accountService);
     }
 }
