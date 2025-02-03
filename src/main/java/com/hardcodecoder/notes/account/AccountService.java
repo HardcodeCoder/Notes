@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Optional;
 
 @Service
 public class AccountService {
@@ -36,6 +37,15 @@ public class AccountService {
             return account.id() != 0;
         } catch (Exception _) {
             return false;
+        }
+    }
+
+    @NonNull
+    public Optional<Account> findByEmail(@NonNull String email) {
+        try {
+            return repository.findByEmail(email);
+        } catch (Exception _) {
+            return Optional.empty();
         }
     }
 }
