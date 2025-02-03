@@ -2,6 +2,7 @@ package com.hardcodecoder.notes.auth;
 
 import com.hardcodecoder.notes.auth.model.AuthResponse;
 import com.hardcodecoder.notes.auth.model.SignupRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -32,7 +33,18 @@ public class AuthController {
     }
 
     @GetMapping("/token")
-    public ResponseEntity<?> obtainToken() {
-        return ResponseEntity.ok("Token");
+    public ResponseEntity<AuthResponse> obtainToken(
+        @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeaderToken
+    ) {
+        try {
+            var response = service.processLoginRequest(authHeaderToken);
+            return ResponseEntity
+                .status(response.success() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED)
+                .body(response);
+        } catch (Exception _) {
+            return ResponseEntity
+                .internalServerError()
+                .body(new AuthResponse("Something went wrong", false));
+        }
     }
 }
