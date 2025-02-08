@@ -1,6 +1,5 @@
-package com.hardcodecoder.notes.auth.validator;
+package com.hardcodecoder.notes.core;
 
-import com.hardcodecoder.notes.core.DataValidator;
 import org.springframework.lang.Nullable;
 
 public class EmailValidator implements DataValidator<String> {

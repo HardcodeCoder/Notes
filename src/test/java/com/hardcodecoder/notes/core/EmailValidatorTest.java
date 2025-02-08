@@ -1,6 +1,5 @@
-package com.hardcodecoder.notes.auth;
+package com.hardcodecoder.notes.core;
 
-import com.hardcodecoder.notes.auth.validator.EmailValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;

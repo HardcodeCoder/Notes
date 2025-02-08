@@ -1,8 +1,8 @@
 package com.hardcodecoder.notes;
 
-import com.hardcodecoder.notes.auth.validator.EmailValidator;
-import com.hardcodecoder.notes.auth.validator.PasswordValidator;
 import com.hardcodecoder.notes.core.DataValidator;
+import com.hardcodecoder.notes.core.EmailValidator;
+import com.hardcodecoder.notes.core.PasswordValidator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
