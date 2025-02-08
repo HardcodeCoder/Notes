@@ -3,16 +3,12 @@ package com.hardcodecoder.notes.auth;
 import com.hardcodecoder.notes.account.AccountService;
 import com.hardcodecoder.notes.account.model.Account;
 import com.hardcodecoder.notes.auth.model.SignupRequest;
-import com.hardcodecoder.notes.core.EmailValidator;
-import com.hardcodecoder.notes.core.PasswordValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Base64;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -23,21 +19,13 @@ import static org.mockito.Mockito.when;
 public class AuthServiceTest {
 
     private final AccountService accountService = mock();
-    private final PasswordEncoder passwordEncoder = mock();
-    private final AuthService service = new AuthService(
-        accountService,
-        passwordEncoder,
-        new EmailValidator(),
-        new PasswordValidator()
-    );
+    private final AuthService service = new AuthService(accountService);
 
     @Test
-    @DisplayName("When signup request is valid should return success response")
-    void shouldReturnSuccessForValidRequest() {
+    @DisplayName("Signup request with valid input should return success response")
+    void verifyValidSignupRequest() {
         when(accountService.create(anyString(), anyString(), anyString()))
             .thenReturn(true);
-        when(passwordEncoder.encode(anyString()))
-            .thenReturn("EncodedPassword");
 
         var request = new SignupRequest("Test", "test@email.com", "Val1dP@ssword");
         var response = service.processSignUpRequest(request);
@@ -48,8 +36,8 @@ public class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("When Email is null should return failed response")
-    void shouldReturnFailedWhenEmailIsNull() {
+    @DisplayName("Signup request with null email should return failed response")
+    void verifySignupRequestWhenEmailIsNull() {
         var request = new SignupRequest("Test", null, "Val1dP@ssword");
         var response = service.processSignUpRequest(request);
 
@@ -59,8 +47,8 @@ public class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("When Password is null should return failed response")
-    void shouldReturnFailedWhenPasswordIsNull() {
+    @DisplayName("Signup request with null password should return failed response")
+    void verifySignupRequestWhenPasswordIsNull() {
         var request = new SignupRequest("Test", "test@email.com", null);
         var response = service.processSignUpRequest(request);
 
@@ -70,19 +58,19 @@ public class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Given valid basic auth token should return success")
-    void shouldReturnSuccessForValidLoginAttempt() {
+    @DisplayName("Retrieve token with basic auth should return success response")
+    void verifyRetrieveWithValidBasicAuthToken() {
+        var email = "test@email.com";
+        var password = "8ecureP@ss";
+
         var account = mock(Account.class);
         when(account.password())
-            .thenReturn("8ecureP@ss");
+            .thenReturn(password);
 
-        when(passwordEncoder.matches(anyString(), anyString()))
+        when(accountService.verifyAccountCredentials(eq(email), eq(password)))
             .thenReturn(true);
 
-        when(accountService.findByEmail(anyString()))
-            .thenReturn(Optional.of(account));
-
-        var authToken = Base64.getEncoder().encodeToString("test@email.com:8ecureP@ss".getBytes());
+        var authToken = Base64.getEncoder().encodeToString((email + ":" + password).getBytes());
         var response = service.processLoginRequest("Basic " + authToken);
 
         Assertions.assertNotNull(response);
@@ -90,28 +78,8 @@ public class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Given non existent credentials should return failed response")
-    void shouldReturnFailedForNonExistentCredentials() {
-        var account = mock(Account.class);
-        when(account.password())
-            .thenReturn("DifferentPassword");
-
-        when(passwordEncoder.matches(eq("8ecureP@ss"), anyString()))
-            .thenReturn(false);
-
-        when(accountService.findByEmail(anyString()))
-            .thenReturn(Optional.of(account));
-
-        var authToken = Base64.getEncoder().encodeToString("test@email.com:8ecureP@ss".getBytes());
-        var response = service.processLoginRequest("Basic " + authToken);
-
-        Assertions.assertNotNull(response);
-        Assertions.assertFalse(response.success());
-    }
-
-    @Test
-    @DisplayName("Given invalid basic auth token should return failed response")
-    void shouldReturnFailedForInvalidToken() {
+    @DisplayName("Retrieve token with invalid basic auth should return failed response")
+    void verifyRetrieveWhenBasicAuthTokenIsInvalid() {
         var authToken = Base64.getEncoder().encodeToString("test@email.com:8ecureP@ss".getBytes());
         var response = service.processLoginRequest(authToken);
 
@@ -120,8 +88,8 @@ public class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Given incomplete basic auth token should return failed response")
-    void shouldReturnFailedForIncompleteToken() {
+    @DisplayName("Retrieve token with incomplete basic auth should return failed response")
+    void verifyRetrieveWhenBasicAuthTokenIsIncomplete() {
         var authToken = Base64.getEncoder().encodeToString("test@email.com:".getBytes());
         var response = service.processLoginRequest("Basic " + authToken);
 

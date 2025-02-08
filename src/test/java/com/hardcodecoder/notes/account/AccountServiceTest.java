@@ -1,26 +1,37 @@
 package com.hardcodecoder.notes.account;
 
 import com.hardcodecoder.notes.account.model.Account;
+import com.hardcodecoder.notes.core.EmailValidator;
+import com.hardcodecoder.notes.core.PasswordValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mockito;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class AccountServiceTest {
 
     private final AccountRepository repository = Mockito.mock();
-    private final AccountService service = new AccountService(repository);
+    private final PasswordEncoder passwordEncoder = mock();
+    private final AccountService service = new AccountService(
+        repository,
+        passwordEncoder,
+        new EmailValidator(),
+        new PasswordValidator()
+    );
 
     @Test
-    @DisplayName("Given valid inputs when account is created should return true")
-    void shouldReturnTrueWhenIdIsNotZero() {
+    @DisplayName("Create request with valid input should return true")
+    void verifyCreateWithValidInput() {
         var account = Mockito.mock(Account.class);
         when(account.id())
             .thenReturn(1L);
@@ -28,46 +39,71 @@ public class AccountServiceTest {
         when(repository.save(Mockito.any(Account.class)))
             .thenReturn(account);
 
-        var result = service.create("Test", "test@email.com", "Password");
+        when(passwordEncoder.encode(anyString()))
+            .thenReturn("EncodedPassword");
+
+        var result = service.create("Test", "test@email.com", "Val1dP@ssword");
         Assertions.assertTrue(result);
     }
 
     @Test
-    @DisplayName("When account is not created should return false")
-    void shouldReturnFalseWhenIdIsZero() {
+    @DisplayName("Create request failed with valid input should return false")
+    void verifyCreateFailedWithValidInput() {
         var account = Mockito.mock(Account.class);
         when(account.id())
-            .thenReturn(0L);
+            .thenReturn(1L);
 
         when(repository.save(Mockito.any(Account.class)))
             .thenReturn(account);
 
-        var result = service.create("", "", "");
+        var result = service.create("Test", "test@email.com", "Val1dP@ssword");
+        Assertions.assertTrue(result);
+    }
+
+    @Test
+    @DisplayName("Create request with invalid input should return false")
+    void verifyCreateWithInvalidInput() {
+        var result = service.create("Test", "email@.com", "Secret");
         Assertions.assertFalse(result);
     }
 
     @Test
-    @DisplayName("Given a valid email should return the corresponding account")
-    void shouldReturnAccountIfValidEmail() {
-        var testEmail = "test@email.com";
+    @DisplayName("Verify Credentials request with valid input should return true")
+    void verifyCredentialWithValidInput() {
+        var email = "test@email.com";
+        var password = "Val1dP@ssword";
+
         var account = Mockito.mock(Account.class);
-        when(repository.findByEmail(eq(testEmail)))
+        when(account.password())
+            .thenReturn(password);
+
+        when(repository.findByEmail(eq(email)))
             .thenReturn(Optional.of(account));
 
-        var optionalAccount = service.findByEmail(testEmail);
-        Assertions.assertNotNull(optionalAccount);
-        Assertions.assertTrue(optionalAccount.isPresent());
+        when(passwordEncoder.matches(anyString(), anyString()))
+            .thenReturn(true);
+
+        var response = service.verifyAccountCredentials(email, password);
+        Assertions.assertTrue(response);
     }
 
     @Test
-    @DisplayName("Given an invalid email should return empty optional")
-    void shouldReturnEmptyIfInvalidEmail() {
+    @DisplayName("Verify Credentials request with valid input should return false")
+    void verifyCredentialsWithInvalidInput() {
+        var email = "test@email.com";
+        var password = "0therP@ssword";
+
         var account = Mockito.mock(Account.class);
-        when(repository.findByEmail(eq("test@email.com")))
+        when(account.password())
+            .thenReturn(password);
+
+        when(repository.findByEmail(eq(email)))
             .thenReturn(Optional.of(account));
 
-        var optionalAccount = service.findByEmail("doesnotexist@email.com");
-        Assertions.assertNotNull(optionalAccount);
-        Assertions.assertFalse(optionalAccount.isPresent());
+        when(passwordEncoder.matches(anyString(), anyString()))
+            .thenReturn(false);
+
+        var response = service.verifyAccountCredentials(email, password);
+        Assertions.assertFalse(response);
     }
 }
