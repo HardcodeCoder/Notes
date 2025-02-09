@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
@@ -14,11 +15,14 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private final String secretSigningKey;
+    private final SecretKey secretSigningKey;
     private final long validityDuration;
 
-    public JwtService(@NonNull String base64EncodedKey, long validityDurationMills) {
-        secretSigningKey = base64EncodedKey;
+    public JwtService(
+        @Value("${jwt.token.secret64}") String base64EncodedKey,
+        @Value("${jwt.token.validity}") long validityDurationMills
+    ) {
+        secretSigningKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(base64EncodedKey));
         validityDuration = validityDurationMills;
     }
 
@@ -30,7 +34,7 @@ public class JwtService {
             .subject(subject)
             .issuedAt(new Date(now))
             .expiration(new Date(now + validityDuration))
-            .signWith(secretKey())
+            .signWith(secretSigningKey)
             .compact();
     }
 
@@ -58,14 +62,9 @@ public class JwtService {
     private Claims extractClaims(@NonNull String token) throws JwtException {
         return Jwts
             .parser()
-            .verifyWith(secretKey())
+            .verifyWith(secretSigningKey)
             .build()
             .parseSignedClaims(token)
             .getPayload();
-    }
-
-    @NonNull
-    private SecretKey secretKey() {
-        return Keys.hmacShaKeyFor(Base64.getDecoder().decode(secretSigningKey));
     }
 }

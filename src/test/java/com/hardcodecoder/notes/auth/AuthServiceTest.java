@@ -2,6 +2,7 @@ package com.hardcodecoder.notes.auth;
 
 import com.hardcodecoder.notes.account.AccountService;
 import com.hardcodecoder.notes.account.model.Account;
+import com.hardcodecoder.notes.auth.model.AuthResult;
 import com.hardcodecoder.notes.auth.model.SignupRequest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -19,7 +20,11 @@ import static org.mockito.Mockito.when;
 public class AuthServiceTest {
 
     private final AccountService accountService = mock();
-    private final AuthService service = new AuthService(accountService);
+    private final JwtService jwtService = mock();
+    private final AuthService service = new AuthService(
+        accountService,
+        jwtService
+    );
 
     @Test
     @DisplayName("Signup request with valid input should return success response")
@@ -31,8 +36,7 @@ public class AuthServiceTest {
         var response = service.processSignUpRequest(request);
 
         Assertions.assertNotNull(response);
-        Assertions.assertTrue(response.success());
-        Assertions.assertEquals("Request processed", response.message());
+        Assertions.assertInstanceOf(AuthResult.Success.class, response);
     }
 
     @Test
@@ -42,8 +46,7 @@ public class AuthServiceTest {
         var response = service.processSignUpRequest(request);
 
         Assertions.assertNotNull(response);
-        Assertions.assertFalse(response.success());
-        Assertions.assertEquals("Invalid Request", response.message());
+        Assertions.assertInstanceOf(AuthResult.Error.class, response);
     }
 
     @Test
@@ -53,8 +56,7 @@ public class AuthServiceTest {
         var response = service.processSignUpRequest(request);
 
         Assertions.assertNotNull(response);
-        Assertions.assertFalse(response.success());
-        Assertions.assertEquals("Invalid Request", response.message());
+        Assertions.assertInstanceOf(AuthResult.Error.class, response);
     }
 
     @Test
@@ -74,7 +76,7 @@ public class AuthServiceTest {
         var response = service.processLoginRequest("Basic " + authToken);
 
         Assertions.assertNotNull(response);
-        Assertions.assertTrue(response.success());
+        Assertions.assertInstanceOf(AuthResult.Success.class, response);
     }
 
     @Test
@@ -84,7 +86,7 @@ public class AuthServiceTest {
         var response = service.processLoginRequest(authToken);
 
         Assertions.assertNotNull(response);
-        Assertions.assertFalse(response.success());
+        Assertions.assertInstanceOf(AuthResult.Error.class, response);
     }
 
     @Test
@@ -94,7 +96,6 @@ public class AuthServiceTest {
         var response = service.processLoginRequest("Basic " + authToken);
 
         Assertions.assertNotNull(response);
-        Assertions.assertFalse(response.success());
-        Assertions.assertEquals("Invalid auth token", response.message());
+        Assertions.assertInstanceOf(AuthResult.Error.class, response);
     }
 }

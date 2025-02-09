@@ -1,7 +1,7 @@
 package com.hardcodecoder.notes.auth;
 
 import com.hardcodecoder.notes.account.AccountService;
-import com.hardcodecoder.notes.auth.model.AuthResponse;
+import com.hardcodecoder.notes.auth.model.AuthResult;
 import com.hardcodecoder.notes.auth.model.SignupRequest;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -12,14 +12,20 @@ import java.util.Base64;
 public class AuthService {
 
     private final AccountService accountService;
+    private final JwtService jwtService;
 
-    public AuthService(@NonNull AccountService accountService) {
+    public AuthService(
+        @NonNull AccountService accountService,
+        @NonNull JwtService jwtService
+    ) {
         this.accountService = accountService;
+        this.jwtService = jwtService;
     }
 
     @NonNull
-    public AuthResponse processSignUpRequest(@NonNull SignupRequest request) {
+    public AuthResult processSignUpRequest(@NonNull SignupRequest request) {
         var signupSuccess = false;
+
         if (null != request.email() && null != request.password()) {
             signupSuccess = accountService.create(
                 request.name(),
@@ -28,23 +34,33 @@ public class AuthService {
             );
         }
 
-        return new AuthResponse(signupSuccess ? "Request processed" : "Invalid Request", signupSuccess);
+        if (signupSuccess) {
+            var token = jwtService.generateToken(request.email());
+            return new AuthResult.Success(token, jwtService.extractExpiration(token));
+        }
+
+        return new AuthResult.Error("Invalid Request");
     }
 
     @NonNull
-    public AuthResponse processLoginRequest(@NonNull String basicAuthToken) {
+    public AuthResult processLoginRequest(@NonNull String basicAuthToken) {
         var authenticated = false;
         if (basicAuthToken.length() > 6 && basicAuthToken.startsWith("Basic")) {
             var authToken64 = basicAuthToken.substring(6);
             var authTokens = new String(Base64.getDecoder().decode(authToken64)).split(":");
 
             if (authTokens.length != 2) {
-                return new AuthResponse("Invalid auth token", false);
+                return new AuthResult.Error("Invalid auth token");
             }
 
             authenticated = accountService.verifyAccountCredentials(authTokens[0], authTokens[1]);
+
+            if (authenticated) {
+                var token = jwtService.generateToken(authTokens[0]);
+                return new AuthResult.Success(token, jwtService.extractExpiration(token));
+            }
         }
 
-        return new AuthResponse(authenticated ? "Authenticated" : "Invalid credentials", authenticated);
+        return new AuthResult.Error("Invalid credentials");
     }
 }

@@ -1,6 +1,6 @@
 package com.hardcodecoder.notes.auth;
 
-import com.hardcodecoder.notes.auth.model.AuthResponse;
+import com.hardcodecoder.notes.auth.model.AuthResult;
 import com.hardcodecoder.notes.auth.model.SignupRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -19,32 +19,32 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> register(@RequestBody SignupRequest request) {
+    public ResponseEntity<AuthResult> register(@RequestBody SignupRequest request) {
         try {
             var response = service.processSignUpRequest(request);
-            return ResponseEntity
-                .status(response.success() ? HttpStatus.OK : HttpStatus.BAD_REQUEST)
-                .body(response);
+            return switch (response) {
+                case AuthResult.Success success -> ResponseEntity.ok(success);
+                case AuthResult.Error error -> ResponseEntity.badRequest().body(error);
+            };
         } catch (Exception _) {
             return ResponseEntity
                 .internalServerError()
-                .body(new AuthResponse("Failed to process request", false));
+                .build();
         }
     }
 
     @GetMapping("/token")
-    public ResponseEntity<AuthResponse> obtainToken(
-        @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeaderToken
-    ) {
+    public ResponseEntity<AuthResult> obtainToken(@RequestHeader(HttpHeaders.AUTHORIZATION) String authHeaderToken) {
         try {
             var response = service.processLoginRequest(authHeaderToken);
-            return ResponseEntity
-                .status(response.success() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED)
-                .body(response);
+            return switch (response) {
+                case AuthResult.Success success -> ResponseEntity.ok(success);
+                case AuthResult.Error error -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            };
         } catch (Exception _) {
             return ResponseEntity
                 .internalServerError()
-                .body(new AuthResponse("Something went wrong", false));
+                .build();
         }
     }
 }
