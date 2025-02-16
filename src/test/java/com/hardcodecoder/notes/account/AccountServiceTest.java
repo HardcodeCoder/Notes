@@ -106,4 +106,15 @@ public class AccountServiceTest {
         var response = service.verifyAccountCredentials(email, password);
         Assertions.assertFalse(response);
     }
+
+    @Test
+    @DisplayName("Verify account exist check")
+    void verifyAccountExistForExistingEmail() {
+        var account = Mockito.mock(Account.class);
+        Mockito.when(repository.findByEmail(eq("test@email.com")))
+            .thenReturn(Optional.of(account));
+
+        Assertions.assertTrue(service.checkAccountExist("test@email.com"));
+        Assertions.assertFalse(service.checkAccountExist("newtest@email.com"));
+    }
 }

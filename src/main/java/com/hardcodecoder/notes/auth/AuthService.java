@@ -27,6 +27,11 @@ public class AuthService {
         var signupSuccess = false;
 
         if (null != request.email() && null != request.password()) {
+
+            if (accountService.checkAccountExist(request.email())) {
+                return new AuthResult.Error("Account already exists");
+            }
+
             signupSuccess = accountService.create(
                 request.name(),
                 request.email(),

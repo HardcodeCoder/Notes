@@ -54,4 +54,9 @@ public class AccountService {
         }
         return false;
     }
+
+    public boolean checkAccountExist(@NonNull String email) {
+        return emailValidator.validate(email) &&
+               accountRepository.findByEmail(email).isPresent();
+    }
 }

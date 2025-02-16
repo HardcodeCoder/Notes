@@ -40,6 +40,21 @@ public class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Duplicate signup request with valid input should return error response")
+    void verifyDuplicateValidSignupRequest() {
+        when(accountService.create(anyString(), anyString(), anyString()))
+            .thenReturn(true);
+        when(accountService.checkAccountExist(anyString()))
+            .thenReturn(true);
+
+        var request = new SignupRequest("Test", "test@email.com", "Val1dP@ssword");
+        var response = service.processSignUpRequest(request);
+
+        Assertions.assertNotNull(response);
+        Assertions.assertInstanceOf(AuthResult.Error.class, response);
+    }
+
+    @Test
     @DisplayName("Signup request with null email should return failed response")
     void verifySignupRequestWhenEmailIsNull() {
         var request = new SignupRequest("Test", null, "Val1dP@ssword");
