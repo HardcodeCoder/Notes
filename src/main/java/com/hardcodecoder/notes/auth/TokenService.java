@@ -87,10 +87,14 @@ public class TokenService {
             var token = repository.findByAccountId(accountId);
             return token.isPresent() &&
                    token.get().accessToken().equals(accessToken) &&
-                   token.get().generatedOn().plus(expiresInMills, ChronoUnit.MILLIS)
-                       .isAfter(OffsetDateTime.now(ZoneOffset.UTC));
+                   expiryTime(token.get()).isAfter(OffsetDateTime.now(ZoneOffset.UTC));
         }
         return false;
+    }
+
+    @NonNull
+    public OffsetDateTime expiryTime(@NonNull Token token) {
+        return token.generatedOn().plus(expiresInMills, ChronoUnit.MILLIS);
     }
 
     public boolean isAccessToken(@NonNull String token) {
