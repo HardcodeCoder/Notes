@@ -12,6 +12,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.Random;
@@ -55,6 +56,41 @@ public class TokenService {
         }
 
         return Optional.empty();
+    }
+
+    @NonNull
+    public Optional<Token> updateToken(@NonNull Account account, @NonNull String refreshToken) {
+        if (isRefreshToken(refreshToken)) {
+            var existingToken = repository.findByAccountId(account.id());
+
+            if (existingToken.isPresent() && existingToken.get().refreshToken().equals(refreshToken)) {
+                var accessToken = generateAccessToken(account);
+
+                if (null != accessToken) {
+                    var token = repository.save(new Token(
+                        existingToken.get().id(),
+                        account.id(),
+                        accessToken,
+                        refreshToken,
+                        OffsetDateTime.now(ZoneOffset.UTC)
+                    ));
+                    return Optional.of(token);
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    public boolean isAccessTokenValid(@NonNull String accessToken, long accountId) {
+        if (isAccessToken(accessToken)) {
+            var token = repository.findByAccountId(accountId);
+            return token.isPresent() &&
+                   token.get().accessToken().equals(accessToken) &&
+                   token.get().generatedOn().plus(expiresInMills, ChronoUnit.MILLIS)
+                       .isAfter(OffsetDateTime.now(ZoneOffset.UTC));
+        }
+        return false;
     }
 
     public boolean isAccessToken(@NonNull String token) {

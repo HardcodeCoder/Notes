@@ -9,6 +9,7 @@ import org.junit.jupiter.api.TestInstance;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -73,5 +74,69 @@ public class TokenServiceTest {
     @DisplayName("Verify invalid refresh tokens are not detected")
     void verifyInvalidRefreshTokenIsNotDetected() {
         Assertions.assertFalse(service.isRefreshToken("ret_token"));
+    }
+
+    @Test
+    @DisplayName("Verify existing token is updated using refresh token")
+    void verifyTokenUpdate() {
+        var token = mock(Token.class);
+        var account = mock(Account.class);
+
+        when(token.id())
+            .thenReturn(100L);
+
+        when(token.refreshToken())
+            .thenReturn("ref_token");
+
+        when(repository.findByAccountId(1))
+            .thenReturn(Optional.of(token));
+
+        when(repository.save(any()))
+            .thenReturn(token);
+
+        when(account.id())
+            .thenReturn(1L);
+
+        service.updateToken(account, "ref_token");
+        verify(repository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("Verify invalid refresh token should not update")
+    void verifyTokenNotUpdatedWhenRefreshTokenInvalid() {
+        var token = mock(Token.class);
+
+        when(token.refreshToken())
+            .thenReturn("ref_token");
+
+        when(repository.findByAccountId(anyLong()))
+            .thenReturn(Optional.of(token));
+
+        var updatedToken = service.updateToken(mock(Account.class), "ref_token2");
+        Assertions.assertFalse(updatedToken.isPresent());
+    }
+
+    @Test
+    @DisplayName("Verify valid access token is recognised")
+    void verifyValidAccessTokenIsRecognised() {
+        var now = OffsetDateTime.now(ZoneOffset.UTC);
+        var token = new Token(100, 1, "acc_token", "ref_token", now);
+
+        when(repository.findByAccountId(eq(1L)))
+            .thenReturn(Optional.of(token));
+
+        Assertions.assertTrue(service.isAccessTokenValid("acc_token", 1L));
+    }
+
+    @Test
+    @DisplayName("Verify expired access token is not recognised")
+    void verifyExpiredAccessTokenIsRecognised() {
+        var now = OffsetDateTime.now(ZoneOffset.UTC).minus(200, ChronoUnit.MILLIS);
+        var token = new Token(100, 1, "acc_token", "ref_token", now);
+
+        when(repository.findByAccountId(eq(1L)))
+            .thenReturn(Optional.of(token));
+
+        Assertions.assertFalse(service.isAccessTokenValid("acc_token", 1L));
     }
 }
