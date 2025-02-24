@@ -49,6 +49,12 @@ public class AccountService {
         return Optional.empty();
     }
 
+    @NonNull
+    public Optional<Account> findById(long accountId) {
+        if (accountId < 1) return Optional.empty();
+        return accountRepository.findById(accountId);
+    }
+
     public boolean verifyAccountCredentials(@NonNull String email, @NonNull String password) {
         if (emailValidator.validate(email) && passwordValidator.validate(password)) {
             var account = accountRepository.findByEmail(email);
