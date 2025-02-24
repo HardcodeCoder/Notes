@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 import java.util.Base64;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -29,8 +30,9 @@ public class AuthServiceTest {
     @Test
     @DisplayName("Signup request with valid input should return success response")
     void verifyValidSignupRequest() {
+        var account = mock(Account.class);
         when(accountService.create(anyString(), anyString(), anyString()))
-            .thenReturn(true);
+            .thenReturn(Optional.of(account));
 
         var request = new SignupRequest("Test", "test@email.com", "Val1dP@ssword");
         var response = service.processSignUpRequest(request);
@@ -42,8 +44,10 @@ public class AuthServiceTest {
     @Test
     @DisplayName("Duplicate signup request with valid input should return error response")
     void verifyDuplicateValidSignupRequest() {
+        var account = mock(Account.class);
         when(accountService.create(anyString(), anyString(), anyString()))
-            .thenReturn(true);
+            .thenReturn(Optional.of(account));
+
         when(accountService.checkAccountExist(anyString()))
             .thenReturn(true);
 

@@ -24,24 +24,22 @@ public class AuthService {
 
     @NonNull
     public AuthResult processSignUpRequest(@NonNull SignupRequest request) {
-        var signupSuccess = false;
-
         if (null != request.email() && null != request.password()) {
 
             if (accountService.checkAccountExist(request.email())) {
                 return new AuthResult.Error("Account already exists");
             }
 
-            signupSuccess = accountService.create(
+            var account = accountService.create(
                 request.name(),
                 request.email(),
                 request.password()
             );
-        }
 
-        if (signupSuccess) {
-            var token = jwtService.generateToken(request.email());
-            return new AuthResult.Success(token, jwtService.extractExpiration(token));
+            if (account.isPresent()) {
+                var token = jwtService.generateToken(request.email());
+                return new AuthResult.Success(token, jwtService.extractExpiration(token));
+            }
         }
 
         return new AuthResult.Error("Invalid Request");

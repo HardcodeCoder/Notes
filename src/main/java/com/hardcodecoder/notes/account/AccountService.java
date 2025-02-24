@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Optional;
 
 @Service
 public class AccountService {
@@ -30,7 +31,8 @@ public class AccountService {
         this.passwordValidator = passwordValidator;
     }
 
-    public boolean create(@Nullable String name, @NonNull String email, @NonNull String password) {
+    @NonNull
+    public Optional<Account> create(@Nullable String name, @NonNull String email, @NonNull String password) {
         if (emailValidator.validate(email) && passwordValidator.validate(password)) {
             var now = OffsetDateTime.now(ZoneOffset.UTC);
             var account = accountRepository.save(new Account(
@@ -41,9 +43,10 @@ public class AccountService {
                 now,
                 now
             ));
-            return account.id() != 0;
+
+            if (account.id() > 0) return Optional.of(account);
         }
-        return false;
+        return Optional.empty();
     }
 
     public boolean verifyAccountCredentials(@NonNull String email, @NonNull String password) {
