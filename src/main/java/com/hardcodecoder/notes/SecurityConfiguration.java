@@ -20,7 +20,7 @@ public class SecurityConfiguration {
 
     private final String[] openEndpoints = {
         "/auth/signup",
-        "/auth/token",
+        "/auth/refresh",
         "/db/h2/**"
     };
 

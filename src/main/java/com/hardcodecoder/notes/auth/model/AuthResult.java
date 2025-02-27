@@ -3,13 +3,14 @@ package com.hardcodecoder.notes.auth.model;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
-import java.util.Date;
+import java.time.OffsetDateTime;
 
 public sealed interface AuthResult {
 
     record Success(
-        @NonNull String token,
-        @NonNull Date expiresOn
+        @NonNull String accessToken,
+        @NonNull String refreshToken,
+        @NonNull OffsetDateTime expiresOn
     ) implements AuthResult {}
 
     record Error(

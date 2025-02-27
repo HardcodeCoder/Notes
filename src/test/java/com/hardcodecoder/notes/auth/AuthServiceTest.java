@@ -4,16 +4,15 @@ import com.hardcodecoder.notes.account.AccountService;
 import com.hardcodecoder.notes.account.model.Account;
 import com.hardcodecoder.notes.auth.model.AuthResult;
 import com.hardcodecoder.notes.auth.model.SignupRequest;
+import com.hardcodecoder.notes.auth.model.Token;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-import java.util.Base64;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -21,10 +20,10 @@ import static org.mockito.Mockito.when;
 public class AuthServiceTest {
 
     private final AccountService accountService = mock();
-    private final JwtService jwtService = mock();
+    private final TokenService tokenService = mock();
     private final AuthService service = new AuthService(
         accountService,
-        jwtService
+        tokenService
     );
 
     @Test
@@ -34,10 +33,13 @@ public class AuthServiceTest {
         when(accountService.create(anyString(), anyString(), anyString()))
             .thenReturn(Optional.of(account));
 
+        var token = mock(Token.class);
+        when(tokenService.createToken(any()))
+            .thenReturn(Optional.of(token));
+
         var request = new SignupRequest("Test", "test@email.com", "Val1dP@ssword");
         var response = service.processSignUpRequest(request);
 
-        Assertions.assertNotNull(response);
         Assertions.assertInstanceOf(AuthResult.Success.class, response);
     }
 
@@ -54,7 +56,6 @@ public class AuthServiceTest {
         var request = new SignupRequest("Test", "test@email.com", "Val1dP@ssword");
         var response = service.processSignUpRequest(request);
 
-        Assertions.assertNotNull(response);
         Assertions.assertInstanceOf(AuthResult.Error.class, response);
     }
 
@@ -64,7 +65,6 @@ public class AuthServiceTest {
         var request = new SignupRequest("Test", null, "Val1dP@ssword");
         var response = service.processSignUpRequest(request);
 
-        Assertions.assertNotNull(response);
         Assertions.assertInstanceOf(AuthResult.Error.class, response);
     }
 
@@ -74,47 +74,37 @@ public class AuthServiceTest {
         var request = new SignupRequest("Test", "test@email.com", null);
         var response = service.processSignUpRequest(request);
 
-        Assertions.assertNotNull(response);
         Assertions.assertInstanceOf(AuthResult.Error.class, response);
     }
 
     @Test
-    @DisplayName("Retrieve token with basic auth should return success response")
-    void verifyRetrieveWithValidBasicAuthToken() {
-        var email = "test@email.com";
-        var password = "8ecureP@ss";
-
+    @DisplayName("Verify access token is refreshed with valid refresh token")
+    void refreshAccessTokenWithValidRefreshToken() {
         var account = mock(Account.class);
-        when(account.password())
-            .thenReturn(password);
+        when(accountService.findById(anyLong()))
+            .thenReturn(Optional.of(account));
 
-        when(accountService.verifyAccountCredentials(eq(email), eq(password)))
+        var token = mock(Token.class);
+        when(tokenService.updateToken(same(account), eq("ref_token")))
+            .thenReturn(Optional.of(token));
+
+        when(tokenService.isRefreshToken(anyString()))
             .thenReturn(true);
 
-        var authToken = Base64.getEncoder().encodeToString((email + ":" + password).getBytes());
-        var response = service.processLoginRequest("Basic " + authToken);
-
-        Assertions.assertNotNull(response);
+        var response = service.refreshAccessToken("Bearer ref_token", 100L);
         Assertions.assertInstanceOf(AuthResult.Success.class, response);
     }
 
     @Test
-    @DisplayName("Retrieve token with invalid basic auth should return failed response")
+    @DisplayName("Verify access token not is refreshed when refresh token is invalid")
     void verifyRetrieveWhenBasicAuthTokenIsInvalid() {
-        var authToken = Base64.getEncoder().encodeToString("test@email.com:8ecureP@ss".getBytes());
-        var response = service.processLoginRequest(authToken);
-
-        Assertions.assertNotNull(response);
+        var response = service.refreshAccessToken("Bearer token", 100L);
         Assertions.assertInstanceOf(AuthResult.Error.class, response);
-    }
 
-    @Test
-    @DisplayName("Retrieve token with incomplete basic auth should return failed response")
-    void verifyRetrieveWhenBasicAuthTokenIsIncomplete() {
-        var authToken = Base64.getEncoder().encodeToString("test@email.com:".getBytes());
-        var response = service.processLoginRequest("Basic " + authToken);
+        response = service.refreshAccessToken("Bearer", 100L);
+        Assertions.assertInstanceOf(AuthResult.Error.class, response);
 
-        Assertions.assertNotNull(response);
+        response = service.refreshAccessToken("Bearer ref_", 100L);
         Assertions.assertInstanceOf(AuthResult.Error.class, response);
     }
 }

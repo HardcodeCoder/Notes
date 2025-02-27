@@ -33,10 +33,13 @@ public class AuthController {
         }
     }
 
-    @GetMapping("/token")
-    public ResponseEntity<AuthResult> obtainToken(@RequestHeader(HttpHeaders.AUTHORIZATION) String authHeaderToken) {
+    @GetMapping("/refresh")
+    public ResponseEntity<AuthResult> refreshAuthToken(
+        @RequestHeader(HttpHeaders.AUTHORIZATION) String authToken,
+        @RequestParam long accountId
+    ) {
         try {
-            var response = service.processLoginRequest(authHeaderToken);
+            var response = service.refreshAccessToken(authToken, accountId);
             return switch (response) {
                 case AuthResult.Success success -> ResponseEntity.ok(success);
                 case AuthResult.Error error -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);

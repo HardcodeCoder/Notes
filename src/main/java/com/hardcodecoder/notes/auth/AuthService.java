@@ -6,64 +6,70 @@ import com.hardcodecoder.notes.auth.model.SignupRequest;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
-import java.util.Base64;
-
 @Service
 public class AuthService {
 
     private final AccountService accountService;
-    private final JwtService jwtService;
+    private final TokenService tokenService;
 
     public AuthService(
         @NonNull AccountService accountService,
-        @NonNull JwtService jwtService
+        @NonNull TokenService tokenService
     ) {
         this.accountService = accountService;
-        this.jwtService = jwtService;
+        this.tokenService = tokenService;
     }
 
     @NonNull
     public AuthResult processSignUpRequest(@NonNull SignupRequest request) {
-        if (null != request.email() && null != request.password()) {
+        if (null == request.email() || null == request.password())
+            return new AuthResult.Error("Invalid Request");
 
-            if (accountService.checkAccountExist(request.email())) {
-                return new AuthResult.Error("Account already exists");
-            }
+        if (accountService.checkAccountExist(request.email()))
+            return new AuthResult.Error("Email already registered");
 
-            var account = accountService.create(
-                request.name(),
-                request.email(),
-                request.password()
+        var optionalAccount = accountService.create(request.name(), request.email(), request.password());
+        if (optionalAccount.isEmpty())
+            return new AuthResult.Error("Failed to signup, invalid request");
+
+        var optionalToken = tokenService.createToken(optionalAccount.get());
+
+        if (optionalToken.isPresent()) {
+            var token = optionalToken.get();
+            return new AuthResult.Success(
+                token.accessToken(),
+                token.refreshToken(),
+                tokenService.expiryTime(token)
             );
-
-            if (account.isPresent()) {
-                var token = jwtService.generateToken(request.email());
-                return new AuthResult.Success(token, jwtService.extractExpiration(token));
-            }
         }
 
-        return new AuthResult.Error("Invalid Request");
+        return new AuthResult.Error("Server encounter an issue");
     }
 
     @NonNull
-    public AuthResult processLoginRequest(@NonNull String basicAuthToken) {
-        var authenticated = false;
-        if (basicAuthToken.length() > 6 && basicAuthToken.startsWith("Basic")) {
-            var authToken64 = basicAuthToken.substring(6);
-            var authTokens = new String(Base64.getDecoder().decode(authToken64)).split(":");
+    public AuthResult refreshAccessToken(@NonNull String authToken, long accountId) {
+        if (authToken.length() <= 7 || !authToken.startsWith("Bearer") || accountId < 1)
+            return new AuthResult.Error("Invalid request");
 
-            if (authTokens.length != 2) {
-                return new AuthResult.Error("Invalid auth token");
-            }
+        var refreshToken = authToken.substring(7);
+        if (!tokenService.isRefreshToken(refreshToken))
+            return new AuthResult.Error("Invalid refresh token");
 
-            authenticated = accountService.verifyAccountCredentials(authTokens[0], authTokens[1]);
+        var optionalAccount = accountService.findById(accountId);
+        if (optionalAccount.isEmpty())
+            return new AuthResult.Error("Invalid account id");
 
-            if (authenticated) {
-                var token = jwtService.generateToken(authTokens[0]);
-                return new AuthResult.Success(token, jwtService.extractExpiration(token));
-            }
+        var optionalToken = tokenService.updateToken(optionalAccount.get(), refreshToken);
+
+        if (optionalToken.isPresent()) {
+            var token = optionalToken.get();
+            return new AuthResult.Success(
+                token.accessToken(),
+                token.refreshToken(),
+                tokenService.expiryTime(token)
+            );
         }
 
-        return new AuthResult.Error("Invalid credentials");
+        return new AuthResult.Error("Failed to authenticate or invalid token");
     }
 }
